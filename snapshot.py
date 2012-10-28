@@ -13,20 +13,18 @@ def embed_img(site, html):
 	arguments =  re.findall(r'<img.*href=[\"\'](.*\..*)[\"\'].*>', html)
 	print arguments
 	for x in arguments:
-		if x.find('http') != -1:
-			site = ''
+		if x.find('http') != -1: site = '';
 		img = get_html(site + x)
 		if img:
-			html = re.sub(r'<img.*' + x + '.*>[</img>]?', '' + convert_img2base64(img) + '', html)
+			html = re.sub(r'<img.*' + x + '.*>[</img>]?', '<img href="data:image/%s;base64,' %x[:-4] + convert_img2base64(img) + '"> </img>', html)
 
-	arguments =  re.findall(r'<img.*href=[\"\'](.*\..*)[\"\'].*>', html)
+	arguments =  re.findall(r'url([\"\'](.*\..*)[\"\'].*;', html)
 	print arguments
 	for x in arguments:
-		if x.find('http') != -1:
-			site = ''
+		if x.find('http') != -1: site = '';
 		img = get_html(site + x)
 		if img:
-			html = re.sub(r'<img.*' + x + '.*>[</img>]?', '' + convert_img2base64(img) + '', html)	
+			html = re.sub(r'url(.*' + x + '.*)', 'url("data:image/%s;base64,' %x[:-3] + convert_img2base64(img) + '"', html)	
 	return html	
 
 def embed_css(site, html):
