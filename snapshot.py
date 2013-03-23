@@ -13,8 +13,7 @@ def embed_img(site, html):
 	arguments =  re.findall(r'<img.*href=[\"\'](.*\..*)[\"\'].*>', html)
 	#print arguments
 	for x in arguments:
-		if x.find('http') != -1:
-			site = ''
+		if x.find('http') != -1: site = '';
 		img = get_html(site + x)
 		if img:
 			html = re.sub(r'<img.*' + x + '.*>[</img>]?', '<img href\"data:image/' + x[-3:] + ';base64,' + convert_img2base64(img) + '\"> </img>', html)
@@ -22,16 +21,13 @@ def embed_img(site, html):
 	arguments =  re.findall(r'<img.*href=[\"\'](.*\..*)[\"\'].*>', html)
 	#print arguments
 	for x in arguments:
-		if x.find('http') != -1:
-			site = ''
+		if x.find('http') != -1: site = '';
 		img = get_html(site + x)
 		if img:
 			html = re.sub(r'<img.*' + x + '.*>[</img>]?', '<img href\"data:image/' + x[-3:] + ';base64,' + convert_img2base64(img) + '\"> </img>', html)	
 
 	arguments =  re.findall(r'url\(([^)]*)\)', html)
-
 	#print arguments
-
 	for x in arguments:
 		if x.find('http') != -1:
 			site = ''
