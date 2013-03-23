@@ -4,29 +4,42 @@ import re
 import urllib2
 
 def convert_img2base64(image_file):
-	return base64.b64encode(image_file.read())
+	return base64.b64encode(image_file)
 
 def convert_64base2img(binary):
 	return base64.decodestring(binary)
 
 def embed_img(site, html):
 	arguments =  re.findall(r'<img.*href=[\"\'](.*\..*)[\"\'].*>', html)
-	print arguments
+	#print arguments
 	for x in arguments:
 		if x.find('http') != -1:
 			site = ''
 		img = get_html(site + x)
 		if img:
-			html = re.sub(r'<img.*' + x + '.*>[</img>]?', '' + convert_img2base64(img) + '', html)
+			html = re.sub(r'<img.*' + x + '.*>[</img>]?', '<img href\"data:image/' + x[-3:] + ';base64,' + convert_img2base64(img) + '\"> </img>', html)
 
 	arguments =  re.findall(r'<img.*href=[\"\'](.*\..*)[\"\'].*>', html)
-	print arguments
+	#print arguments
 	for x in arguments:
 		if x.find('http') != -1:
 			site = ''
 		img = get_html(site + x)
 		if img:
-			html = re.sub(r'<img.*' + x + '.*>[</img>]?', '' + convert_img2base64(img) + '', html)	
+			html = re.sub(r'<img.*' + x + '.*>[</img>]?', '<img href\"data:image/' + x[-3:] + ';base64,' + convert_img2base64(img) + '\"> </img>', html)	
+
+	arguments =  re.findall(r'url\(([^)]*)\)', html)
+
+	#print arguments
+
+	for x in arguments:
+		if x.find('http') != -1:
+			site = ''
+		#print site + x
+		img = get_html(site + x)
+		if img:
+			html = re.sub(r'url\(([^)]*)\)', 'url(data:image/' + x[-3:] + ';base64,' + convert_img2base64(img) + ')', html)
+
 	return html	
 
 def embed_css(site, html):
@@ -50,6 +63,7 @@ def embed_js(site, html):
 def get_html(url):
 	opener = urllib2.build_opener()
 	opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+	#print opener.open(url)
 	return opener.open(url).read()
 
 if __name__ == '__main__':
@@ -58,4 +72,5 @@ if __name__ == '__main__':
 
 	html = embed_js(site, html) 
 	html = embed_css(site, html) 
+	html = embed_img(site, html)
 	print html
