@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import base64
 import re
+from BeautifulSoup import BeautifulSoup
 import urllib2
 
 def convert_img2base64(image_file):
@@ -56,17 +57,34 @@ def embed_js(site, html):
 			html = re.sub(r'<script.*' + x + '.*>[</script>]?', '<script>\n' + javascript +'\n</script>', html)
 	return html
 
-def get_html(url):
+def get_html(url, suburl=None):
+	if suburl:
+		url += suburl
 	opener = urllib2.build_opener()
 	opener.addheaders = [('User-agent', 'Mozilla/5.0')]
 	#print opener.open(url)
 	return opener.open(url).read()
 
 if __name__ == '__main__':
-	site = 'http://localhost/'
+	site = 'http://news.ycombinator.com/'
 	html = get_html(site)
 
-	html = embed_js(site, html) 
-	html = embed_css(site, html) 
-	html = embed_img(site, html)
-	print html
+	soup = BeautifulSoup(html)
+	for img in soup.findAll('img'):
+		img['src'] = base64.b64encode(get_html(site + img['src']))
+
+	for css in soup.findAll('link', {'type': "text/css" }):
+		#print css['href']
+		css = '<style media="screen" type="text/css">' + get_html(site + css['href']) + '</style>'
+		#print css
+		#Get images, fonts, and css from css
+
+	for js in soup.findAll('script'):
+		if js.has_key('src'):
+			js = '<script>' + get_html(site + js['src']) + '</script>'
+			print js
+
+	#html = embed_js(site, html) 
+	#html = embed_css(site, html) 
+	#html = embed_img(site, html)
+	#print html
