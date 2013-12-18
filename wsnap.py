@@ -5,6 +5,7 @@ import optparse
 from urlparse import urlparse, urljoin
 from BeautifulSoup import BeautifulSoup
 import urllib2
+import re
 
 def convert_img2base64(image_file):
 	return base64.b64encode(image_file)
@@ -53,30 +54,46 @@ if __name__ == '__main__':
 		soup = BeautifulSoup(html)
 
 		#Convert img to base64
-		for img in soup.findAll('img'):
-			if img.has_key('src'):
-				_, img_data = get_html(get_url(base_url, img['src']))
-				#print img_data[0]
-				if img_data in ['image/jpeg', 'image/gif', 'image/png']:
-					img['src'] =  'data:' + img_data[0] + ';base64,' + b64encode(img_data[1])
+		for tag in soup.findAll({'img': True, 'script': True, 'link': True, 'style': True}):
+			if tag.has_key('src'):
+				if tag.name == 'img':
+					#If is a img
+					img_data = get_html(get_url(base_url, tag['src']))
+					#print img_data[0]
+					if img_data[0] in ['image/jpeg', 'image/gif', 'image/png']:
+						tag['src'] =  'data:' + img_data[0] + ';base64,' + b64encode(img_data[1])
+				if tag.name == 'script':
+					#If is a scrypt
+					_, data = get_html(get_url(base_url, tag['src']))
+					js = '<script>' + data+ '</script>'
+			if tag.has_key('href'):
+				if (tag.has_key('type') and  tag['type'] == "text/css") or ( tag.has_key('rel') and tag['rel'] == "stylesheet"):
+					_, data = get_html(get_url(base_url, tag['href']))
+					temp_str = str(data)
+					for urls in re.findall('url\(([^)]+)\)', temp_str):
+						if urls.find('data:') == 0:
+							continue
+						#print urls
+						img_data = get_html(get_url(base_url, urls))
+						offset = temp_str.find(urls)
+						temp_str = temp_str[:offset] + 'data:' + img_data[0] + ';base64,' + b64encode(img_data[1]) + temp_str[offset + len(urls):]
+					tag = '<style media="screen" type="text/css">' + temp_str + '</style>'
+					#Get images, fonts, and css from css
 
-		#Embed CSS in page
-		for css in soup.findAll('link', {'type': "text/css" }):
-			if css.has_key('href'):
-				#print css['href']
-				_, data = get_html(get_url(base_url, css['href']))
-				css = '<style media="screen" type="text/css">' + data + '</style>'
-				#print css
-				#Get images, fonts, and css from css
+		for tag in soup.findAll(attrs={'style': True}):
+			temp_str = str(tag['style'])
+			for urls in re.findall('url\(([^)]+)\)', temp_str):
+				if urls.find('data:') == 0:
+					continue
+				#print urls
+				img_data = get_html(get_url(base_url, urls))
+				offset = temp_str.find(urls)
+				temp_str = temp_str[:offset] + 'data:' + img_data[0] + ';base64,' + b64encode(img_data[1]) + temp_str[offset + len(urls):]
+			#print temp_str
+			tag['style'] = temp_str
 
-		#Embed JS in page
-		for js in soup.findAll('script'):
-			#print js
-			if js.has_key('src'):
-				_, data = get_html(get_url(base_url, js['src']))
-				js = '<script>' + data+ '</script>'
 		if len(argv) > 2:
 			url_file = open(argv[2], 'w')
-			url_file.write(html)
+			url_file.write(str(soup))
 		else:
-			print html
+			print soup
