@@ -53,25 +53,35 @@ if __name__ == '__main__':
 		_, html = get_html(get_url(url.geturl()))
 		soup = BeautifulSoup(html)
 
-		#Convert img to base64
 		for tag in soup.findAll({'img': True, 'script': True, 'link': True, 'style': True}):
 			if tag.has_key('src'):
+				#Immage files
 				if tag.name == 'img':
 					#If is a img
 					img_data = get_html(get_url(base_url, tag['src']))
 					#print img_data[0]
 					if img_data[0] in ['image/jpeg', 'image/gif', 'image/png']:
 						tag['src'] =  'data:' + img_data[0] + ';base64,' + b64encode(img_data[1])
+				#JS files
 				if tag.name == 'script':
 					#If is a scrypt
 					_, data = get_html(get_url(base_url, tag['src']))
 					js = '<script>' + data+ '</script>'
 			if tag.has_key('href'):
+				#CSS files
 				if (tag.has_key('type') and  tag['type'] == "text/css") or ( tag.has_key('rel') and tag['rel'] == "stylesheet"):
 					_, data = get_html(get_url(base_url, tag['href']))
 					temp_str = str(data)
+
+					#embed imported css files
+					for imports in re.findall('\@import\(([^)]+)\)', temp_str):
+						css_data = get_html(get_url(base_url, urls))
+						offset = temp_str.find('@import(' + imports + ')')
+						temp_str = temp_str[:offset] + css_data + temp_str[offset + len('@import(' + imports + ')'):]
+					
+					#embed url objects
 					for urls in re.findall('url\(([^)]+)\)', temp_str):
-						if urls.find('data:') == 0:
+						if urls.find('data:') != -1:
 							continue
 						#print urls
 						img_data = get_html(get_url(base_url, urls))
@@ -80,10 +90,18 @@ if __name__ == '__main__':
 					tag = '<style media="screen" type="text/css">' + temp_str + '</style>'
 					#Get images, fonts, and css from css
 
+		#Convert Embeded tags
 		for tag in soup.findAll(attrs={'style': True}):
 			temp_str = str(tag['style'])
+			#embed imported css files
+			for imports in re.findall('\@import\(([^)]+)\)', temp_str):
+				css_data = get_html(get_url(base_url, urls))
+				offset = temp_str.find('@import(' + imports + ')')
+				temp_str = temp_str[:offset] + css_data + temp_str[offset + len('@import(' + imports + ')'):]
+
+			#embed url objects
 			for urls in re.findall('url\(([^)]+)\)', temp_str):
-				if urls.find('data:') == 0:
+				if urls.find('data:') != -1:
 					continue
 				#print urls
 				img_data = get_html(get_url(base_url, urls))
